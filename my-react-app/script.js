@@ -1,6 +1,4 @@
-// ════════════════════════════════
-//  ESTADO — apenas memória RAM
-// ════════════════════════════════
+
 const S = {
   currentType: 'income',
   goalAmount: 10000,
@@ -15,6 +13,10 @@ const S = {
     { id:7, name:'Salário',     emoji:'💼', color:'#00C96F', type:'income'  },
     { id:8, name:'Freelance',   emoji:'💻', color:'#06B6D4', type:'income'  },
   ],
+
+
+//  BANCO
+
   transactions: [
     { id:1,  desc:'Salário Março',      amount:5500, type:'income',  cat:'Salário',     date:'2026-03-05' },
     { id:2,  desc:'Freelance Design',   amount:1610, type:'income',  cat:'Freelance',   date:'2026-03-12' },
@@ -32,9 +34,8 @@ const S = {
   ]
 };
 
-// ════════════════════════════════
-//  HELPERS
-// ════════════════════════════════
+
+
 const PALETTE = ['#8B5CF6','#F97316','#14B8A6','#3B82F6','#EC4899','#EF4444','#10B981','#F59E0B','#06B6D4'];
 
 const fmt = n => 'R$ ' + Math.abs(n).toLocaleString('pt-BR', { minimumFractionDigits:2 });
@@ -47,9 +48,7 @@ let charts = {};
 function destroyCharts() { Object.values(charts).forEach(c=>{ try{c.destroy()}catch(e){} }); charts={}; }
 function mkChart(id, cfg) { const el=document.getElementById(id); if(el) charts[id]=new Chart(el,cfg); }
 
-// ════════════════════════════════
-//  NAVEGAÇÃO
-// ════════════════════════════════
+
 function nav(page) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -59,9 +58,7 @@ function nav(page) {
   ({ dashboard:renderDashboard, transacoes:renderTransactions, categorias:renderCategories, relatorios:renderReports })[page]?.();
 }
 
-// ════════════════════════════════
-//  DASHBOARD
-// ════════════════════════════════
+
 function renderDashboard() {
   const totalInc = sumAmt(S.transactions,'income');
   const totalExp = sumAmt(S.transactions,'expense');
@@ -78,14 +75,14 @@ function renderDashboard() {
   document.getElementById('k-bal-badge').textContent  = bal>=0 ? '↑ Positivo' : '↓ Negativo';
   document.getElementById('k-goal-badge').textContent = gPct+'% atingido';
 
-  // últimas 5 transações
+
   const last5 = [...S.transactions].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
   const tbody = document.getElementById('dash-tbody');
   const empty = document.getElementById('dash-empty');
   if (!last5.length) { tbody.innerHTML=''; empty.style.display='block'; }
   else { empty.style.display='none'; tbody.innerHTML=last5.map(t=>rowHtml(t,false)).join(''); }
 
-  // line chart: 6 meses
+ 
   const ref = new Date(2026,3,1);
   const pairs = Array.from({length:6},(_,i)=>{ const d=new Date(ref.getFullYear(),ref.getMonth()-5+i,1); return {m:d.getMonth(),y:d.getFullYear()}; });
   const lbls = pairs.map(p=>new Date(p.y,p.m).toLocaleDateString('pt-BR',{month:'short'}));
@@ -97,16 +94,14 @@ function renderDashboard() {
     {label:'Despesas',data:eData,borderColor:'#FF4D6D',backgroundColor:'rgba(255,77,109,.06)',borderWidth:2.5,tension:.4,fill:true,pointRadius:5,pointBackgroundColor:'#FF4D6D'},
   ]},options:{plugins:{legend:{position:'top',labels:{font:{size:11},padding:14}}},scales:{y:{grid:{color:'#F3F4F6'},ticks:{callback:v=>'R$'+Math.round(v/1000)+'k'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
 
-  // donut
+  
   const catMap={};
   S.transactions.filter(t=>t.type==='expense').forEach(t=>{ catMap[t.cat]=(catMap[t.cat]||0)+t.amount; });
   const keys=Object.keys(catMap);
   mkChart('donutChart',{type:'doughnut',data:{labels:keys,datasets:[{data:keys.map(k=>catMap[k]),backgroundColor:keys.map(k=>catOf(k).color||'#ccc'),borderWidth:0,hoverOffset:6}]},options:{plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:10,boxWidth:10}}},cutout:'60%',responsive:true,maintainAspectRatio:true}});
 }
 
-// ════════════════════════════════
-//  TRANSAÇÕES
-// ════════════════════════════════
+
 function renderTransactions() {
   const sel = document.getElementById('flt-cat');
   sel.innerHTML = '<option value="">Todas as categorias</option>' + S.categories.map(c=>`<option>${c.name}</option>`).join('');
@@ -150,9 +145,7 @@ function deleteTx(id) {
   showToast('🗑 Transação removida.');
 }
 
-// ════════════════════════════════
-//  CATEGORIAS
-// ════════════════════════════════
+
 function renderCategories() {
   document.getElementById('cats-grid').innerHTML = S.categories.map(c=>{
     const total = S.transactions.filter(t=>t.cat===c.name).reduce((a,b)=>a+b.amount,0);
@@ -172,16 +165,14 @@ function renderCategories() {
   mkChart('catBarChart',{type:'bar',data:{labels:expCats.map(c=>c.emoji+' '+c.name),datasets:[{data:totals,backgroundColor:expCats.map(c=>c.color+'CC'),borderRadius:6,borderSkipped:false}]},options:{plugins:{legend:{display:false}},scales:{y:{grid:{color:'#F3F4F6'},ticks:{callback:v=>'R$'+v}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
 }
 
-// ════════════════════════════════
-//  RELATÓRIOS
-// ════════════════════════════════
+
 function renderReports() {
   const m = parseInt(document.getElementById('rep-month').value);
   const y = parseInt(document.getElementById('rep-year').value);
   const txM = txByM(m,y);
   const inc = sumAmt(txM,'income'), exp = sumAmt(txM,'expense'), bal = inc-exp;
 
-  // bar: últimos 6 meses
+
   const ref = new Date(y, m, 1);
   const pairs = Array.from({length:6},(_,i)=>{ const d=new Date(ref.getFullYear(),ref.getMonth()-5+i,1); return {m:d.getMonth(),y:d.getFullYear()}; });
   mkChart('barChart',{type:'bar',data:{labels:pairs.map(p=>new Date(p.y,p.m).toLocaleDateString('pt-BR',{month:'short'})),datasets:[
@@ -189,7 +180,7 @@ function renderReports() {
     {label:'Despesas',data:pairs.map(p=>sumAmt(txByM(p.m,p.y),'expense')),backgroundColor:'#FF4D6D99',borderRadius:5},
   ]},options:{plugins:{legend:{position:'top'}},scales:{y:{grid:{color:'#F3F4F6'}},x:{grid:{display:false}}},responsive:true,maintainAspectRatio:true}});
 
-  // pie
+
   const catMap={};
   txM.filter(t=>t.type==='expense').forEach(t=>{ catMap[t.cat]=(catMap[t.cat]||0)+t.amount; });
   const keys=Object.keys(catMap);
@@ -208,9 +199,7 @@ function renderReports() {
   ].map(s=>`<div style="background:var(--bg);border-radius:12px;padding:18px;"><div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">${s.label}</div><div style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${s.color}">${s.val}</div></div>`).join('');
 }
 
-// ════════════════════════════════
-//  MODAIS
-// ════════════════════════════════
+
 function openTxModal() {
   selType('income');
   document.getElementById('tx-desc').value   = '';
@@ -259,9 +248,7 @@ function addCategory() {
   renderCategories();
 }
 
-// ════════════════════════════════
-//  TOAST
-// ════════════════════════════════
+
 let toastT;
 function showToast(msg) {
   clearTimeout(toastT);
